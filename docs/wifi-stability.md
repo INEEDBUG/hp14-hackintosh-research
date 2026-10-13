@@ -28,6 +28,8 @@ WCL 的关联 busy / cancel / timeout 决策未在此补丁中重写。扫描树
 
 完整 Sequoia x86_64 实验构建编译了 73 个实际源文件并链接 kext。存在大量警告，尚未完成与未修改基线的警告比较。源码级测试和链接成功不验证内核 ABI、KPI 授权、真实固件、RF 或稳定性；没有加载该产物。
 
+后续产物审查发现初版实验构建器关闭了栈保护，因此在任何加载之前改为 `-fstack-protector-strong` 并完整重建。当前实验产物保留 stack-canary imports；与当前日用驱动的 954 个 undefined imports 精确名称集合相同，无新增或缺失。该比较减少了链接名称差异的不确定性，仍不证明 ABI、KPI 授权或运行成功。见 [导入比较证据](../evidence/wifi-imports-20261013.json)。14 项函数测试的源码未变，结果明确复用。
+
 ## 数值诊断
 
 | stage | 含义 |

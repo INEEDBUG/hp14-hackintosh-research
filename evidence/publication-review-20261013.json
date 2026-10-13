@@ -25,5 +25,12 @@
     "Regex scanning is not a guarantee of absence of all sensitive data",
     "No physical Wi-Fi stability fix accepted",
     "macOS sleep and native bidirectional AirDrop remain unresolved"
-  ]
+  ],
+  "followup_review_utc": "2026-10-13T13:16:41.526580+00:00",
+  "followup": {
+    "stack_protected_full_build": "PASS",
+    "import_names_match_active_954": "PASS; ABI and runtime remain unverified",
+    "actual_method_tests": "REUSED 14/14; production source and test fixture unchanged",
+    "live_usb_config_wifi_weg_lilu": "SHA-256 matches pre-development baseline; system Build24H32"
+  }
 }

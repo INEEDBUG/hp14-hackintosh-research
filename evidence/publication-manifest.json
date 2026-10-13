@@ -10,18 +10,19 @@
     "THIRD_PARTY_NOTICES.md": "b2c55a59abf235deb7c6addf79cf7dabbbed0e0a5cdd28ee10b49618e295611c",
     "docs/acceptance.md": "43f855e716618cc106e4f03790f15a6aed9ce359194c5ee19b2a464026ad04a9",
     "docs/airdrop.md": "6b3c1b63a7aa2f99f0d75189f89135cffb63aaefa063aed32a30df3fc0903e99",
-    "docs/project-history.md": "1653ec0c9c7acd03e805d78dd98be19ab6467eb05f1fe2a2588c0588cc0ad0ca",
+    "docs/project-history.md": "00c4dfa541426e03c8d50aca06d670fb51f284c22c5ddd9cad6edfdaa404887c",
     "docs/publication.md": "6ff8c6319d3d9904b0df860fa43176283e657173a9e0b277d4cab3bcd77b9ce0",
     "docs/reproduce.md": "313550093c37245cfe316f822cf9ea70539bb24dbde37677e451c86a858c9091",
     "docs/sleep-wake.md": "ce55ba2e19362ecc02df98866748c2a13093e118c932c5177bf02529e410224a",
-    "docs/wifi-stability.md": "d326b3a52dffe42affe275c17491ca558618e641c0d6693d3fc2ee00ca1a68ed",
-    "evidence/publication-review-20261013.json": "c95b8febebd1f5c0f32b9a8af94e31a433e325b636ad65abcc8e427b366ecef8",
-    "evidence/wifi-build-20261013.json": "d88370cbe3d356633cfa6fc83e363c513f02a511f9e1b26e6b5ccf36a83761f3",
+    "docs/wifi-stability.md": "adbdee80c984a280f7e39665f60155c80fe8b99f6b9e4b6b5436f71c7a0f430c",
+    "evidence/publication-review-20261013.json": "a6cdaf4897fe7643121dd96bd9c3f193a7476bd3d65dd9fdb6026d4b6e9a5a31",
+    "evidence/wifi-build-20261013.json": "55c26aadd7962249f41c7dd98576a90c0fadee4bf2f31324173642a9d28ba6cf",
+    "evidence/wifi-imports-20261013.json": "265e5895dd0a4af1837523f7947d9810ec47560c3fc87c51bbd69b204e9a46db",
     "evidence/wifi-tests-20261013.json": "6181143a7f10be9d36ea0ba2f0bfd109417e7c5775798dde22e513789ae29902",
     "patches/wifi/0001-scan-cursor-and-numeric-diagnostics.patch": "920168b66d4132fa1f19744672d4a8bb64a52876745c3098b75eb57e9a905759",
     "tests/hp14/run_scan_tests.py": "61070c0f667816aa953a12c3e970882839c138cb9ef4d9f851ccca08a4953150",
     "tests/hp14/scan_fixture.cpp": "b4deb1b96e501f20cade0b30f3809bac29d2bc3557c2e2330cde375fabf43872",
     "tools/check_publication.py": "0494792f298240893057a17fc08688b7b3113e6eab0d00e091d4131caed4d286",
-    "tools/hp14/build_sequoia_clt.py": "858278527ac45aa6b7a623dab70154c0754fb842aff56a8e3c3597c09ea7bb96"
+    "tools/hp14/build_sequoia_clt.py": "ab1d8086d201302984009f2623d2997625895973808563c4600777e821342ce9"
   }
 }

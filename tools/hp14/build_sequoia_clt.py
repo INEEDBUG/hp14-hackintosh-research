@@ -28,7 +28,7 @@ flags=["-arch","x86_64","-isysroot",macsdk,"-std=gnu++14","-nostdinc",
        "-DAIRPORT_WCL","-DAIRPORT","-D__PRIVATE_SPI__","-DIO80211FAMILY_V2",
        "-D__IO80211_TARGET=__MAC_15_2",'-DITLWM_VERSION="2.4.0"','-DGIT_COMMIT="_hp14offline"',
        "-fapple-kext","-mkernel","-fno-exceptions","-fno-rtti","-fno-builtin","-fno-common",
-       "-mno-red-zone","-fno-stack-protector","-mmacosx-version-min=15.2","-O1",
+       "-mno-red-zone","-fstack-protector-strong","-mmacosx-version-min=15.2","-O1",
        "-Wno-deprecated-register","-DHP14_WIFI_DIAGNOSTICS="+str(args.diagnostics),
        "-ffile-prefix-map="+str(w)+"=source","-ffile-prefix-map="+str(sdk)+"=MacKernelSDK"]
 for inc in ["itl80211/openbsd","itl80211","include","include/Airport","AirportItlwm",

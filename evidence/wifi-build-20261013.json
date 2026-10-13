@@ -1,12 +1,12 @@
 {
-  "start_utc": "2026-10-13T13:04:56.843873+00:00",
-  "end_utc": "2026-10-13T13:05:17.279134+00:00",
+  "start_utc": "2026-10-13T13:14:47.344893+00:00",
+  "end_utc": "2026-10-13T13:15:07.082060+00:00",
   "source_pin": "f26a3afc8a0eecd6995ebdba48498f36bac107ad",
   "target": "AirportItlwm-Sequoia",
   "arch": "x86_64",
   "all_sources_compiled": true,
   "link_exit": 0,
-  "binary_sha256": "733d40870f06500a83a90d8290f4dd335e2a9a9ee408f03dd10ca58d8f950d65",
+  "binary_sha256": "de07ce25b5da3aace215c778cb9df4debf6d0887ace0fb5e9de46024adf7bf3f",
   "loadability": "UNVERIFIED",
   "physical_wifi_fixes": "UNVERIFIED",
   "installed": false,
@@ -15,5 +15,7 @@
   "compile_errors": 0,
   "warnings_total": 6915,
   "warnings_baseline_comparison": "NOT_PERFORMED",
-  "xcode_template_substitutions_remaining": false
+  "xcode_template_substitutions_remaining": false,
+  "stack_protection": "-fstack-protector-strong",
+  "actual_methods_source_sha256": "9a6ec5d7e51b146ddf2c59b68d052a880ece55ff0826f4f1e8f6a738944f02d8"
 }

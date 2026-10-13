@@ -1,0 +1,8 @@
+{
+  "active_import_count": 954,
+  "candidate_import_count": 954,
+  "added": [],
+  "removed": [],
+  "stack_canary_imports_present": true,
+  "scope": "Import-name comparison only; not runtime ABI/KPI authorization proof"
+}
