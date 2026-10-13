@@ -1,0 +1,92 @@
+{
+  "source_sha256": "9a6ec5d7e51b146ddf2c59b68d052a880ece55ff0826f4f1e8f6a738944f02d8",
+  "compiled_actual_methods": true,
+  "compile_exit": 0,
+  "pass": 14,
+  "fail": 0,
+  "limits": "Host fixtures are not kernel/firmware/RF validation.",
+  "tests": [
+    {
+      "test": "restart_after_last_result",
+      "exit": 0
+    },
+    {
+      "test": "restart_after_partial_read",
+      "exit": 0
+    },
+    {
+      "test": "cache_freed_between_reads",
+      "exit": 0
+    },
+    {
+      "test": "cache_clear_starts_new_enumeration",
+      "exit": 0
+    },
+    {
+      "test": "rates_are_copied",
+      "exit": 0
+    },
+    {
+      "test": "init_rejection_preserved",
+      "exit": 0
+    },
+    {
+      "test": "complete_list_and_eof",
+      "exit": 0
+    },
+    {
+      "test": "passive_scan_does_not_start_active_bgscan",
+      "exit": 0
+    },
+    {
+      "test": "scan_request_emits_numeric_diagnostic",
+      "exit": 0
+    },
+    {
+      "test": "diagnostic_is_line_delimited",
+      "exit": 0
+    },
+    {
+      "test": "rate_count_is_bounded",
+      "exit": 0
+    },
+    {
+      "test": "unavailable_gate_is_rejected",
+      "exit": 0
+    },
+    {
+      "test": "stopping_is_rejected",
+      "exit": 0
+    },
+    {
+      "test": "active_scan_preserves_cache",
+      "exit": 0
+    }
+  ],
+  "baseline": {
+    "pass": 3,
+    "fail": 5,
+    "test_failures": [
+      {
+        "test": "restart_after_last_result",
+        "exit": 1
+      },
+      {
+        "test": "restart_after_partial_read",
+        "exit": 1
+      },
+      {
+        "test": "cache_freed_between_reads",
+        "exit": -6
+      },
+      {
+        "test": "cache_clear_starts_new_enumeration",
+        "exit": -6
+      },
+      {
+        "test": "rates_are_copied",
+        "exit": 1
+      }
+    ]
+  }
+}

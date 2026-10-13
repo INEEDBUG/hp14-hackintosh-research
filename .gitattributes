@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# A patch preserves upstream context whitespace. Check its applied source diff.
+*.patch -whitespace

@@ -1,0 +1,15 @@
+# Local source checkouts, diagnostics and products are never publication input.
+/work/
+/build/
+/private/
+*.kext/
+*.o
+*.iso
+*.dmg
+*.zip
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.env.*

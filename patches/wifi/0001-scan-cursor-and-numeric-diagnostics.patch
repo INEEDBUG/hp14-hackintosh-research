@@ -1,0 +1,353 @@
+diff --git a/AirportItlwm/AirportItlwmSkywalkInterface.cpp b/AirportItlwm/AirportItlwmSkywalkInterface.cpp
+index d5891ed..7328b0b 100644
+--- a/AirportItlwm/AirportItlwmSkywalkInterface.cpp
++++ b/AirportItlwm/AirportItlwmSkywalkInterface.cpp
+@@ -890,16 +890,18 @@ getASSOCIATION_STATUS(struct apple80211_assoc_status_data *hv)
+     return kIOReturnSuccess;
+ }
+ 
+-IOReturn AirportItlwmSkywalkInterface::
+-setSCANCACHE_CLEAR(void *req)
++IOReturn AirportItlwmSkywalkInterface::setSCANCACHE_CLEAR(void *req)
+ {
+-    XYLog("%s\n", __FUNCTION__);
++#ifdef AIRPORT_WCL
++    return _fCommandGate ? _fCommandGate->runAction(scanCursorCommand, this,
++        reinterpret_cast<void *>(2), req) : kIOReturnNotReady;
++#else
+     struct ieee80211com *ic = fHalService->get80211Controller();
+-    //if doing background or active scan, don't free nodes.
+     if ((ic->ic_flags & IEEE80211_F_BGSCAN) || (ic->ic_flags & IEEE80211_F_ASCAN))
+         return kIOReturnSuccess;
+     ieee80211_free_allnodes(ic, 0);
+     return kIOReturnSuccess;
++#endif
+ }
+ 
+ IOReturn AirportItlwmSkywalkInterface::
+@@ -939,34 +941,85 @@ getLINK_CHANGED_EVENT_DATA(struct apple80211_link_changed_event_data *ed)
+     return kIOReturnSuccess;
+ }
+ 
+-IOReturn AirportItlwmSkywalkInterface::
+-setSCAN_REQ(struct apple80211_scan_data *sd)
++IOReturn AirportItlwmSkywalkInterface::setSCAN_REQ(struct apple80211_scan_data *sd)
+ {
++#ifdef AIRPORT_WCL
++    if (!sd)
++        return kIOReturnBadArgument;
++    return _fCommandGate ? _fCommandGate->runAction(scanCursorCommand, this,
++        nullptr, sd) : kIOReturnNotReady;
++#else
+     struct ieee80211com *ic = fHalService->get80211Controller();
+-#if 0
+-    XYLog("%s Type: %u BSS Type: %u PHY Mode: %u Dwell time: %u Rest time: %u Num channels: %u SSID: %s BSSID: %s\n",
+-          __FUNCTION__,
+-          sd->scan_type,
+-          sd->bss_type,
+-          sd->phy_mode,
+-          sd->dwell_time,
+-          sd->rest_time,
+-          sd->num_channels,
+-          sd->ssid,
+-          ether_sprintf(sd->bssid.octet));
+-#endif
+-    if (fScanResultWrapping)
++    if (fScanResultWrapping || ic->ic_state <= IEEE80211_S_INIT)
+         return 22;
++    if (sd->scan_type != APPLE80211_SCAN_TYPE_FAST &&
++        sd->scan_type != APPLE80211_SCAN_TYPE_PASSIVE)
++        ieee80211_begin_cache_bgscan(&ic->ic_ac.ac_if);
++    if (scanSource) {
++        scanSource->setTimeoutMS(100);
++        scanSource->enable();
++    }
++    return kIOReturnSuccess;
++#endif
++}
++
++#ifdef AIRPORT_WCL
++IOReturn AirportItlwmSkywalkInterface::scanCursorCommand(
++    OSObject *, void *owner, void *operation, void *data, void *)
++{
++    auto self = static_cast<AirportItlwmSkywalkInterface *>(owner);
++    if (self->wclStopping)
++        return kIOReturnNotReady;
++    IOReturn status;
++    switch (uintptr_t(operation)) {
++        case 0: status = self->setSCAN_REQGated(static_cast<apple80211_scan_data *>(data)); break;
++        case 1: status = self->getSCAN_RESULTGated(static_cast<apple80211_scan_result *>(data)); break;
++        case 2: status = self->clearSCANCACHEGated(); break;
++        default: return kIOReturnUnsupported;
++    }
++    self->recordWiFiDiagnostic(unsigned(uintptr_t(operation)) + 1, status);
++    return status;
++}
++
++void AirportItlwmSkywalkInterface::recordWiFiDiagnostic(
++    unsigned stage, IOReturn status, unsigned detail)
++{
++#if HP14_WIFI_DIAGNOSTICS
++    // Existing command-gate scope only. Never log requests, keys, SSIDs or addresses.
++    if (stage >= 32 || !fHalService || !_fCommandGate ||
++        !_fCommandGate->getWorkLoop() || !_fCommandGate->getWorkLoop()->inGate())
++        return;
++    auto ic = fHalService->get80211Controller();
++    unsigned count = ++wifiDiagnosticStageCount[stage];
++    unsigned long long sequence = ++wifiDiagnosticSequence;
++    if (count > 8 && (count % 64) != 0)
++        return;
++    IOLog("HP14WIFI v1 seq=%llu stage=%u status=%08x detail=%u state=%u flags=%08x scan=%u join=%u deferred=%u auth=%u\n",
++        sequence, stage, unsigned(status), detail, unsigned(ic->ic_state),
++        unsigned(ic->ic_flags), unsigned(scanPending), unsigned(joinPending),
++        unsigned(joinDeferred), unsigned(portAuthorized));
++#endif
++}
++
++void AirportItlwmSkywalkInterface::resetScanCursor()
++{
++    // Keep an ordering key, never a borrowed cache node across kernel callbacks.
++    fNextNodeToSend = nullptr;
++    fScanResultWrapping = false;
++    scanCursorValid = false;
++    bzero(scanCursorMAC, sizeof(scanCursorMAC));
++}
++
++IOReturn AirportItlwmSkywalkInterface::setSCAN_REQGated(apple80211_scan_data *sd)
++{
++    auto ic = fHalService->get80211Controller();
+     if (ic->ic_state <= IEEE80211_S_INIT)
+         return 22;
+-    if (sd->scan_type == APPLE80211_SCAN_TYPE_FAST || sd->scan_type == APPLE80211_SCAN_TYPE_PASSIVE) {
+-        if (scanSource) {
+-            scanSource->setTimeoutMS(100);
+-            scanSource->enable();
+-        }
+-        return kIOReturnSuccess;
+-    }
+-    ieee80211_begin_cache_bgscan(&ic->ic_ac.ac_if);
++    // Reset before begin_cache_bgscan(), which may free the previous node tree.
++    resetScanCursor();
++    if (sd->scan_type != APPLE80211_SCAN_TYPE_FAST &&
++        sd->scan_type != APPLE80211_SCAN_TYPE_PASSIVE)
++        ieee80211_begin_cache_bgscan(&ic->ic_ac.ac_if);
+     if (scanSource) {
+         scanSource->setTimeoutMS(100);
+         scanSource->enable();
+@@ -974,6 +1027,17 @@ setSCAN_REQ(struct apple80211_scan_data *sd)
+     return kIOReturnSuccess;
+ }
+ 
++IOReturn AirportItlwmSkywalkInterface::clearSCANCACHEGated()
++{
++    auto ic = fHalService->get80211Controller();
++    if ((ic->ic_flags & IEEE80211_F_BGSCAN) || (ic->ic_flags & IEEE80211_F_ASCAN))
++        return kIOReturnSuccess;
++    resetScanCursor();
++    ieee80211_free_allnodes(ic, 0);
++    return kIOReturnSuccess;
++}
++#endif
++
+ extern OSDictionary *convertScanToDictionary(apple80211_scan_result *a1);
+ 
+ static int convertNodeToScanResult(ItlHalService *fHalService, struct ieee80211_node *fNextNodeToSend, apple80211_scan_result *result)
+@@ -987,9 +1051,12 @@ static int convertNodeToScanResult(ItlHalService *fHalService, struct ieee80211_
+         result->asr_ie_len = 0;
+     }
+     result->asr_beacon_int = fNextNodeToSend->ni_intval;
+-    for (int i = 0; i < result->asr_nrates; i++ )
++    result->asr_nrates = MIN(fNextNodeToSend->ni_rates.rs_nrates,
++        MIN(sizeof(result->asr_rates) / sizeof(result->asr_rates[0]),
++            sizeof(fNextNodeToSend->ni_rates.rs_rates) /
++                sizeof(fNextNodeToSend->ni_rates.rs_rates[0])));
++    for (unsigned i = 0; i < result->asr_nrates; ++i)
+         result->asr_rates[i] = fNextNodeToSend->ni_rates.rs_rates[i];
+-    result->asr_nrates = fNextNodeToSend->ni_rates.rs_nrates;
+     result->asr_age = (uint32_t)(airport_up_time() - fNextNodeToSend->ni_age_ts);
+     result->asr_cap = fNextNodeToSend->ni_capinfo;
+     result->asr_channel.version = APPLE80211_VERSION;
+@@ -1022,29 +1089,57 @@ getCOLOCATED_NETWORK_SCOPE_ID(apple80211_colocated_network_scope_id *as)
+     return kIOReturnSuccess;
+ }
+ 
+-IOReturn AirportItlwmSkywalkInterface::
+-getSCAN_RESULT(struct apple80211_scan_result *sr)
++IOReturn AirportItlwmSkywalkInterface::getSCAN_RESULT(struct apple80211_scan_result *sr)
+ {
+-    if (fNextNodeToSend == NULL) {
++#ifdef AIRPORT_WCL
++    if (!sr)
++        return kIOReturnBadArgument;
++    return _fCommandGate ? _fCommandGate->runAction(scanCursorCommand, this,
++        reinterpret_cast<void *>(1), sr) : kIOReturnNotReady;
++#else
++    if (fNextNodeToSend == nullptr) {
+         if (fScanResultWrapping) {
+             fScanResultWrapping = false;
+             return 5;
+-        } else {
+-            fNextNodeToSend = RB_MIN(ieee80211_tree, &fHalService->get80211Controller()->ic_tree);
+-            if (fNextNodeToSend == NULL) {
+-                return 5;
+-            }
+         }
++        fNextNodeToSend = RB_MIN(ieee80211_tree, &fHalService->get80211Controller()->ic_tree);
++        if (!fNextNodeToSend)
++            return 5;
+     }
+-//    XYLog("%s ni_bssid=%s ni_essid=%s channel=%d flags=%d asr_cap=%d asr_nrates=%d asr_ssid_len=%d asr_ie_len=%d asr_rssi=%d\n", __FUNCTION__, ether_sprintf(fNextNodeToSend->ni_bssid), fNextNodeToSend->ni_essid, ieee80211_chan2ieee(ic, fNextNodeToSend->ni_chan), ieeeChanFlag2apple(fNextNodeToSend->ni_chan->ic_flags, -1), fNextNodeToSend->ni_capinfo, fNextNodeToSend->ni_rates.rs_nrates, fNextNodeToSend->ni_esslen, fNextNodeToSend->ni_rsnie_tlv == NULL ? 0 : fNextNodeToSend->ni_rsnie_tlv_len, fNextNodeToSend->ni_rssi);
+     convertNodeToScanResult(fHalService, fNextNodeToSend, sr);
+-    
+-    fNextNodeToSend = RB_NEXT(ieee80211_tree, &HalService->get80211Controller()->ic_tree, fNextNodeToSend);
+-    if (fNextNodeToSend == NULL)
++    fNextNodeToSend = RB_NEXT(ieee80211_tree,
++        &fHalService->get80211Controller()->ic_tree, fNextNodeToSend);
++    if (!fNextNodeToSend)
+         fScanResultWrapping = true;
++    return kIOReturnSuccess;
++#endif
++}
+ 
++#ifdef AIRPORT_WCL
++IOReturn AirportItlwmSkywalkInterface::getSCAN_RESULTGated(apple80211_scan_result *sr)
++{
++    if (fScanResultWrapping) {
++        resetScanCursor();
++        return 5;
++    }
++    auto ic = fHalService->get80211Controller();
++    ieee80211_node *node;
++    RB_FOREACH(node, ieee80211_tree, &ic->ic_tree) {
++        if (!scanCursorValid ||
++            memcmp(node->ni_macaddr, scanCursorMAC, IEEE80211_ADDR_LEN) > 0)
++            break;
++    }
++    if (!node) {
++        resetScanCursor();
++        return 5;
++    }
++    convertNodeToScanResult(fHalService, node, sr);
++    memcpy(scanCursorMAC, node->ni_macaddr, sizeof(scanCursorMAC));
++    scanCursorValid = true;
++    fScanResultWrapping = RB_NEXT(ieee80211_tree, &ic->ic_tree, node) == nullptr;
+     return kIOReturnSuccess;
+ }
++#endif
+ 
+ #ifdef AIRPORT_WCL
+ IOReturn AirportItlwmSkywalkInterface::getHW_ADDR(apple80211_hw_mac_address *data)
+diff --git a/AirportItlwm/AirportItlwmSkywalkInterface.hpp b/AirportItlwm/AirportItlwmSkywalkInterface.hpp
+index ef928d0..b6cdffb 100644
+--- a/AirportItlwm/AirportItlwmSkywalkInterface.hpp
++++ b/AirportItlwm/AirportItlwmSkywalkInterface.hpp
+@@ -455,9 +455,22 @@ private:
+     ItlHalService *fHalService;
+     
+     //IO80211
+-    struct ieee80211_node *fNextNodeToSend;
++    struct ieee80211_node *fNextNodeToSend {nullptr};
+     IOTimerEventSource *scanSource;
+-    bool fScanResultWrapping;
++    bool fScanResultWrapping {false};
++#ifdef AIRPORT_WCL
++    // Protected by the existing HAL/WCL command gate.
++    uint8_t scanCursorMAC[IEEE80211_ADDR_LEN] {};
++    bool scanCursorValid {false};
++    uint64_t wifiDiagnosticSequence {0};
++    uint32_t wifiDiagnosticStageCount[32] {};
++    void recordWiFiDiagnostic(unsigned stage, IOReturn status, unsigned detail = 0);
++    static IOReturn scanCursorCommand(OSObject *, void *, void *, void *, void *);
++    void resetScanCursor();
++    IOReturn setSCAN_REQGated(apple80211_scan_data *);
++    IOReturn getSCAN_RESULTGated(apple80211_scan_result *);
++    IOReturn clearSCANCACHEGated();
++#endif
+     
+     u_int32_t current_authtype_lower;
+     u_int32_t current_authtype_upper;
+diff --git a/AirportItlwm/WCL/WCL.cpp b/AirportItlwm/WCL/WCL.cpp
+index 05fe248..5605208 100644
+--- a/AirportItlwm/WCL/WCL.cpp
++++ b/AirportItlwm/WCL/WCL.cpp
+@@ -134,10 +134,26 @@ IOReturn AirportItlwmSkywalkInterface::wclCommand(OSObject *, void *a0, void *a1
+         case 8: return self->installWCLKey(static_cast<apple80211_key *>(a2));
+         case 9: return self->accessWCLRSN(static_cast<apple80211_rsn_ie_data *>(a2), true);
+         case 10: return self->accessWCLRSN(static_cast<apple80211_rsn_ie_data *>(a2), false);
+-        case 0: return self->beginWCLScan(static_cast<apple80211ScanRequest *>(a2));
+-        case 1: return self->beginWCLJoin(static_cast<apple80211AssocCandidates *>(a2));
+-        case 2: return self->abortWCLJoin();
+-        case 3: return self->leaveWCLNetwork();
++        case 0: {
++            IOReturn result = self->beginWCLScan(static_cast<apple80211ScanRequest *>(a2));
++            self->recordWiFiDiagnostic(10, result);
++            return result;
++        }
++        case 1: {
++            IOReturn result = self->beginWCLJoin(static_cast<apple80211AssocCandidates *>(a2));
++            self->recordWiFiDiagnostic(11, result);
++            return result;
++        }
++        case 2: {
++            IOReturn result = self->abortWCLJoin();
++            self->recordWiFiDiagnostic(12, result);
++            return result;
++        }
++        case 3: {
++            IOReturn result = self->leaveWCLNetwork();
++            self->recordWiFiDiagnostic(13, result);
++            return result;
++        }
+         case 6: return self->copyWCLExtendedBss(a2);
+         case 7:
+             if (!a2 || !self->wclBssValid || !self->wclAssociatedBeacons)
+@@ -242,6 +258,7 @@ void AirportItlwmSkywalkInterface::finishWCLScan(IOReturn status)
+ {
+     if (!scanPending)
+         return;
++    recordWiFiDiagnostic(15, status);
+     scanPending = false;
+     scanCompleted = false;
+     scanSource->cancelTimeout();
+@@ -506,6 +523,7 @@ void AirportItlwmSkywalkInterface::finishWCLJoin(uint16_t status, uint16_t reaso
+ {
+     if (!joinPending)
+         return;
++    recordWiFiDiagnostic(16, driverStatus, (uint32_t(status) << 16) | reason);
+     AirportWCL::ConnectionEvent event = {};
+     event.status = status;
+     event.reason = reason;
+@@ -571,6 +589,8 @@ void AirportItlwmSkywalkInterface::handleWCLLink(bool up)
+     if (wclStopping)
+         return;
+     portAuthorized = up;
++    if (!up)
++        recordWiFiDiagnostic(24, kIOReturnOffline);
+     if (!up && wclLinkIndicated) {
+         AirportWCL::LinkStatusEvent event = {};
+         memcpy(event.bssid, joinBSSID, sizeof(event.bssid));
+@@ -601,6 +621,7 @@ void AirportItlwmSkywalkInterface::handleWCLEvent(int code, void *data)
+             deferWCLCountryUpdate();
+             break;
+         case IEEE80211_EVT_DRIVER_RESET_BEGIN: {
++            recordWiFiDiagnostic(21, kIOReturnSuccess, unsigned(ic->ic_wcl_mac_reconfig));
+             if (ic->ic_wcl_mac_reconfig) {
+                 break;
+             }
+@@ -611,6 +632,8 @@ void AirportItlwmSkywalkInterface::handleWCLEvent(int code, void *data)
+         case IEEE80211_EVT_DRIVER_READY:
+         case IEEE80211_EVT_DRIVER_STOPPED: {
+             bool ready = code == IEEE80211_EVT_DRIVER_READY;
++            recordWiFiDiagnostic(ready ? 22 : 23, ready ? kIOReturnSuccess : kIOReturnOffline,
++                unsigned(ic->ic_wcl_mac_reconfig));
+             if (!ready) {
+                 finishWCLScan(ic->ic_wcl_mac_reconfig ? kIOReturnAborted : kIOReturnOffline);
+                 finishWCLJoin(1, 0, kIOReturnOffline);
+@@ -726,6 +749,7 @@ void AirportItlwmSkywalkInterface::handleWCLEvent(int code, void *data)
+             }
+             break;
+         case IEEE80211_EVT_STA_DEAUTH: {
++            recordWiFiDiagnostic(20, kIOReturnOffline, unsigned(ic->ic_deauth_reason));
+             AirportWCL::DeauthEvent event = {};
+             event.reason = ic->ic_deauth_reason;
+             if (ic->ic_bss)

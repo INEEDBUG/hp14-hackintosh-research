@@ -1,0 +1,19 @@
+{
+  "start_utc": "2026-10-13T13:04:56.843873+00:00",
+  "end_utc": "2026-10-13T13:05:17.279134+00:00",
+  "source_pin": "f26a3afc8a0eecd6995ebdba48498f36bac107ad",
+  "target": "AirportItlwm-Sequoia",
+  "arch": "x86_64",
+  "all_sources_compiled": true,
+  "link_exit": 0,
+  "binary_sha256": "733d40870f06500a83a90d8290f4dd335e2a9a9ee408f03dd10ca58d8f950d65",
+  "loadability": "UNVERIFIED",
+  "physical_wifi_fixes": "UNVERIFIED",
+  "installed": false,
+  "firmware_scope": "Compile-time embedding only; no firmware execution, flash or radio control",
+  "compiled_translation_units": 73,
+  "compile_errors": 0,
+  "warnings_total": 6915,
+  "warnings_baseline_comparison": "NOT_PERFORMED",
+  "xcode_template_substitutions_remaining": false
+}

@@ -1,0 +1,29 @@
+{
+  "reviewed_utc": "2026-10-13T13:12:28.359613+00:00",
+  "reviewed_beijing": "2026-10-13T21:12:28.359613+08:00",
+  "visibility": "PUBLIC",
+  "publication_scope": "Sanitized experience, experimental source patch, host tests and offline build tool; no binary driver distribution",
+  "checks": {
+    "initial_tracked_text_privacy_scan": "PASS; selected patterns plus manual review",
+    "json_and_local_markdown_links": "PASS",
+    "fresh_pinned_checkout_patch_apply": "PASS",
+    "applied_production_diff_whitespace": "PASS",
+    "fresh_checkout_actual_method_tests": {
+      "pass": 14,
+      "fail": 0,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ]
+    },
+    "complete_experimental_kext_compile_and_link": "PASS; not loaded",
+    "upstream_license_and_attribution": "Reviewed pinned GPL2 license and original file notices",
+    "history": "New isolated initial history; no private task history copied"
+  },
+  "deployment": "No deployment or release workflows",
+  "limits": [
+    "Regex scanning is not a guarantee of absence of all sensitive data",
+    "No physical Wi-Fi stability fix accepted",
+    "macOS sleep and native bidirectional AirDrop remain unresolved"
+  ]
+}
